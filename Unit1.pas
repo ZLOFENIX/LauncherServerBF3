@@ -17,6 +17,8 @@ tServerListenerCap = procedure(id: integer; cap0: integer; cap1: integer);cdecl;
 tServerListenerState = procedure(id: integer; value: integer);cdecl;
 tServerListenerPlayers = procedure(id: integer; value: integer);cdecl;
 tServerListenerAddr = procedure(id: integer; ip: PAnsiChar; port: integer);cdecl;
+tZMessageListener = procedure(msg: PAnsiChar);cdecl;
+tVersionListener = procedure(version: integer);cdecl;
 
   TServer = class
     public
@@ -69,6 +71,9 @@ ZLO_SetServerListenerCap:procedure(l: tServerListenerCap); cdecl;
 ZLO_SetServerListenerState:procedure(l: tServerListenerState); cdecl;
 ZLO_SetServerListenerPlayers:procedure(l: tServerListenerPlayers); cdecl;
 ZLO_SetServerListenerAddr:procedure(l: tServerListenerAddr); cdecl;
+ZLO_SetZMessageListener:procedure(l: tZMessageListener); cdecl;
+ZLO_SetVersionListener:procedure(l: tVersionListener); cdecl;
+ZLO_GetVersion:procedure(launcher: integer); cdecl;
 //Client
 ZLO_ConnectMClient:function(addr:PAnsiChar):boolean; cdecl;
 ZLO_AuthClient:procedure(mail,pass:PAnsiChar); cdecl;
@@ -196,6 +201,7 @@ begin
 form1.Memo1.Lines.Add('Auth success');
 ClearServers();
 in_serverlist:=false;
+ZLO_GetVersion(2);
 end;
 2:begin form1.Memo1.Lines.Add('Old Launcher.dll');form1.Button1.Enabled:=false;form1.UpdateTimer.Enabled:=true;end;
 29:form1.Memo1.Lines.Add('Server connected');
@@ -316,6 +322,16 @@ end;
 mutex.Release;
 end;
 
+procedure ZMessageListener(msg: PAnsiChar);cdecl;
+begin
+form1.Memo1.Lines.Add(msg);
+end;
+
+procedure VersionListener(version: integer);cdecl;
+begin
+form1.Memo1.Lines.Add('Launcher version on server 0x'+inttohex(version, 8));
+end;
+
 procedure InitLib();
 begin
 DllHandle:=LoadLibrary('Launcher.dll');
@@ -333,6 +349,9 @@ begin
 @ZLO_SetServerListenerState:=GetProcAddress(DllHandle, 'ZLO_SetServerListenerState');
 @ZLO_SetServerListenerPlayers:=GetProcAddress(DllHandle, 'ZLO_SetServerListenerPlayers');
 @ZLO_SetServerListenerAddr:=GetProcAddress(DllHandle, 'ZLO_SetServerListenerAddr');
+@ZLO_SetZMessageListener:=GetProcAddress(DllHandle, 'ZLO_SetZMessageListener');
+@ZLO_SetVersionListener:=GetProcAddress(DllHandle, 'ZLO_SetVersionListener');
+@ZLO_GetVersion:=GetProcAddress(DllHandle, 'ZLO_GetVersion');
 //Client
 @ZLO_ConnectMClient:=GetProcAddress(DllHandle, 'ZLO_ConnectMClient');
 @ZLO_AuthClient:=GetProcAddress(DllHandle, 'ZLO_AuthClient');
@@ -355,6 +374,8 @@ ZLO_SetServerListenerCap(@ServerListenerCap);
 ZLO_SetServerListenerState(@ServerListenerState);
 ZLO_SetServerListenerPlayers(@ServerListenerPlayers);
 ZLO_SetServerListenerAddr(@ServerListenerAddr);
+ZLO_SetZMessageListener(@ZMessageListener);
+ZLO_SetVersionListener(@VersionListener);
 if not ZLO_ListenGOS() then
 begin
 showmessage('Cant open port for GOS, you can see servers, but cannot connect');
@@ -396,7 +417,7 @@ end;
 end;
 HttpClient:=TIdHttp.Create(nil);
 try
-HttpClient.Get('http://zlofenix.org/bf3/Launcher.dll', Buffer);
+HttpClient.Get('http://zloemu.org/files/bf3/Launcher.dll?d='+inttostr(random(9999999)), Buffer);
 except
 begin
 form1.Memo1.Lines.Add('Error updating dll');
@@ -410,7 +431,7 @@ HttpClient.Free;
 form1.Memo1.Lines.Add('Dll updated');
 InitLib;
 ClearServers();
-if ZLO_ConnectMClient('zlofenix.org') then
+if ZLO_ConnectMClient('emu.bf3.zloemu.org') then
 begin
 form1.button1.Enabled:=false;
 form1.Memo1.Clear;
@@ -439,7 +460,7 @@ ini.WriteInteger('Cols','6',serverlist.ColWidths[6]);
 ini.Free;
 ReconnectTimer.Enabled:=false;
 ClearServers();
-if ZLO_ConnectMServer('zlofenix.org') then
+if ZLO_ConnectMServer('emu.bf3.zloemu.org') then
 begin
 button1.Enabled:=false;
 Memo1.Clear;
@@ -453,6 +474,7 @@ procedure TForm1.FormCreate(Sender: TObject);
 var
 ini:tinifile;
 begin
+randomize;
 servers:=TObjectDictionary<integer, TServer>.create();
 mutex:=TMutex.Create();
 if not fileexists('Launcher.dll') then
@@ -516,7 +538,7 @@ begin
 ReconnectTimer.Enabled:=false;
 memo1.Lines.Add('Reconnecting');
 ClearServers();
-if ZLO_ConnectMServer('zlofenix.org') then
+if ZLO_ConnectMServer('emu.bf3.zloemu.org') then
 begin
 button1.Enabled:=false;
 Memo1.Lines.Add('Connected to master');

@@ -73,7 +73,6 @@ ZLO_SetServerListenerPlayers:procedure(l: tServerListenerPlayers); cdecl;
 ZLO_SetServerListenerAddr:procedure(l: tServerListenerAddr); cdecl;
 ZLO_SetZMessageListener:procedure(l: tZMessageListener); cdecl;
 ZLO_SetVersionListener:procedure(l: tVersionListener); cdecl;
-ZLO_GetVersion:procedure(launcher: integer); cdecl;
 //Client
 ZLO_ConnectMClient:function(addr:PAnsiChar):boolean; cdecl;
 ZLO_AuthClient:procedure(mail,pass:PAnsiChar); cdecl;
@@ -81,6 +80,7 @@ ZLO_GetServerList:procedure(); cdecl;
 ZLO_SelectServer:procedure(id: integer); cdecl;
 ZLO_RunClient:function(): boolean; cdecl;
 ZLO_GetID:function(): integer; cdecl;
+ZLO_GetVersion:procedure(launcher: integer); cdecl;
 //
 ZLO_ListenServer:function(): boolean; cdecl;
 ZLO_ConnectMServer:function(addr:PAnsiChar):boolean; cdecl;
@@ -351,7 +351,6 @@ begin
 @ZLO_SetServerListenerAddr:=GetProcAddress(DllHandle, 'ZLO_SetServerListenerAddr');
 @ZLO_SetZMessageListener:=GetProcAddress(DllHandle, 'ZLO_SetZMessageListener');
 @ZLO_SetVersionListener:=GetProcAddress(DllHandle, 'ZLO_SetVersionListener');
-@ZLO_GetVersion:=GetProcAddress(DllHandle, 'ZLO_GetVersion');
 //Client
 @ZLO_ConnectMClient:=GetProcAddress(DllHandle, 'ZLO_ConnectMClient');
 @ZLO_AuthClient:=GetProcAddress(DllHandle, 'ZLO_AuthClient');
@@ -359,6 +358,7 @@ begin
 @ZLO_SelectServer:=GetProcAddress(DllHandle, 'ZLO_SelectServer');
 @ZLO_RunClient:=GetProcAddress(DllHandle, 'ZLO_RunClient');
 @ZLO_GetID:=GetProcAddress(DllHandle, 'ZLO_GetID');
+@ZLO_GetVersion:=GetProcAddress(DllHandle, 'ZLO_GetVersion');
 //Server
 @ZLO_ListenServer:=GetProcAddress(DllHandle, 'ZLO_ListenServer');
 @ZLO_ConnectMServer:=GetProcAddress(DllHandle, 'ZLO_ConnectMServer');

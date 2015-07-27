@@ -8,7 +8,7 @@ uses
   IdBaseComponent, IdComponent, IdTCPConnection, IdTCPClient, IdHTTP, inifiles, System.SyncObjs;
 
 const
-  ZVersion = 4;
+  ZVersion = 5;
 
 type
 tEventListener = procedure(event: integer);cdecl;
@@ -157,8 +157,6 @@ result:=m;
 end;
 
 procedure ClearServers();
-var
-id:integer;
 begin
 mutex.Acquire;
 form1.serverlist.RowCount:=1;
@@ -224,15 +222,13 @@ begin
 mutex.Acquire;
 if added and not servers.ContainsKey(id) then
 servers.Add(id,TServer.Create())
-else if servers.ContainsKey(id) then
+else if servers.ContainsKey(id) and not added then
 servers.Remove(id);
 ReDraw;
 mutex.Release;
 end;
 
 procedure ServerListenerName(id: integer; value: PAnsiChar);cdecl;
-var
-i:integer;
 begin
 mutex.Acquire;
 if servers.ContainsKey(id) then

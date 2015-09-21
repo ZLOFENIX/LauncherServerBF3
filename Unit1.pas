@@ -8,7 +8,7 @@ uses
   IdBaseComponent, IdComponent, IdTCPConnection, IdTCPClient, IdHTTP, inifiles, System.SyncObjs;
 
 const
-  ZVersion = 5;
+  ZVersion = 6;
 
 type
 tEventListener = procedure(event: integer);cdecl;
@@ -63,7 +63,6 @@ implementation
 
 var
 ZLO_Init:procedure(); cdecl;
-ZLO_ListenGOS: function(): boolean; cdecl;
 //Events
 ZLO_SetEventListener:procedure(l: tEventListener); cdecl;
 ZLO_SetClientListener:procedure(l: tClientListener); cdecl;
@@ -76,18 +75,11 @@ ZLO_SetServerListenerPlayers:procedure(l: tServerListenerPlayers); cdecl;
 ZLO_SetServerListenerAddr:procedure(l: tServerListenerAddr); cdecl;
 ZLO_SetZMessageListener:procedure(l: tZMessageListener); cdecl;
 ZLO_SetVersionListener:procedure(l: tVersionListener); cdecl;
-//Client
-ZLO_ConnectMClient:function(addr:PAnsiChar):boolean; cdecl;
-ZLO_AuthClient:procedure(mail,pass:PAnsiChar); cdecl;
-ZLO_GetServerList:procedure(); cdecl;
-ZLO_SelectServer:procedure(id: integer); cdecl;
-ZLO_RunClient:function(): boolean; cdecl;
-ZLO_GetID:function(): integer; cdecl;
-ZLO_GetVersion:procedure(launcher: integer); cdecl;
 //
 ZLO_ListenServer:function(): boolean; cdecl;
-ZLO_ConnectMServer:function(addr:PAnsiChar):boolean; cdecl;
+ZLO_ConnectMServer:function():boolean; cdecl;
 //
+ZLO_GetVersion:procedure(launcher: integer); cdecl;
 ZLO_Close:procedure(); cdecl;
 
 {$R *.dfm}
@@ -197,20 +189,19 @@ end;
 procedure EventListener(event: integer);cdecl;
 begin
 case event of
-0:
-begin
-form1.Memo1.Lines.Add('Auth success');
-ClearServers();
-in_serverlist:=false;
-ZLO_GetVersion(2);
-end;
 2:begin form1.Memo1.Lines.Add('Old Launcher.dll');form1.Button1.Enabled:=false;form1.UpdateTimer.Enabled:=true;end;
 29:form1.Memo1.Lines.Add('Server connected');
 30:form1.Memo1.Lines.Add('Server auth success');
 31:form1.Memo1.Lines.Add('Server auth error');
 32:begin form1.Memo1.Lines.Add('Disconnected from master, will reconnect in 5sec');form1.button1.Enabled:=true;ClearServers();form1.ReconnectTimer.Enabled:=true;end;
 33:form1.Memo1.Lines.Add('Master timeout and disconnected');
-34:form1.Memo1.Lines.Add('Dll check ok');
+34:
+begin
+form1.Memo1.Lines.Add('Dll check ok');
+ClearServers();
+in_serverlist:=false;
+ZLO_GetVersion(2);
+end;
 35:form1.Memo1.Lines.Add('Server disconnected');
 else
 form1.Memo1.Lines.Add('Event: ' + inttostr(event));
@@ -338,7 +329,6 @@ DllHandle:=LoadLibrary('Launcher.dll');
 if Dllhandle<>0 then
 begin
 @ZLO_Init:=GetProcAddress(DllHandle, 'ZLO_Init');
-@ZLO_ListenGOS:=GetProcAddress(DllHandle, 'ZLO_ListenGOS');
 //Events
 @ZLO_SetEventListener:=GetProcAddress(DllHandle, 'ZLO_SetEventListener');
 @ZLO_SetClientListener:=GetProcAddress(DllHandle, 'ZLO_SetClientListener');
@@ -351,18 +341,11 @@ begin
 @ZLO_SetServerListenerAddr:=GetProcAddress(DllHandle, 'ZLO_SetServerListenerAddr');
 @ZLO_SetZMessageListener:=GetProcAddress(DllHandle, 'ZLO_SetZMessageListener');
 @ZLO_SetVersionListener:=GetProcAddress(DllHandle, 'ZLO_SetVersionListener');
-//Client
-@ZLO_ConnectMClient:=GetProcAddress(DllHandle, 'ZLO_ConnectMClient');
-@ZLO_AuthClient:=GetProcAddress(DllHandle, 'ZLO_AuthClient');
-@ZLO_GetServerList:=GetProcAddress(DllHandle, 'ZLO_GetServerList');
-@ZLO_SelectServer:=GetProcAddress(DllHandle, 'ZLO_SelectServer');
-@ZLO_RunClient:=GetProcAddress(DllHandle, 'ZLO_RunClient');
-@ZLO_GetID:=GetProcAddress(DllHandle, 'ZLO_GetID');
-@ZLO_GetVersion:=GetProcAddress(DllHandle, 'ZLO_GetVersion');
 //Server
 @ZLO_ListenServer:=GetProcAddress(DllHandle, 'ZLO_ListenServer');
 @ZLO_ConnectMServer:=GetProcAddress(DllHandle, 'ZLO_ConnectMServer');
 //
+@ZLO_GetVersion:=GetProcAddress(DllHandle, 'ZLO_GetVersion');
 @ZLO_Close:=GetProcAddress(DllHandle, 'ZLO_Close');
 //
 ZLO_Init();
@@ -376,11 +359,6 @@ ZLO_SetServerListenerPlayers(@ServerListenerPlayers);
 ZLO_SetServerListenerAddr(@ServerListenerAddr);
 ZLO_SetZMessageListener(@ZMessageListener);
 ZLO_SetVersionListener(@VersionListener);
-if not ZLO_ListenGOS() then
-begin
-showmessage('Cant open port for GOS, you can see servers, but cannot connect');
-form1.memo1.lines.add('Cant open port for GOS, you can see servers, but cannot connect');
-end;
 if not ZLO_ListenServer() then
 begin
 showmessage('Cant open port for server, its fatal');
@@ -431,7 +409,7 @@ HttpClient.Free;
 form1.Memo1.Lines.Add('Dll updated');
 InitLib;
 ClearServers();
-if ZLO_ConnectMClient('emu.bf3.zloemu.org') then
+if ZLO_ConnectMServer() then
 begin
 form1.button1.Enabled:=false;
 form1.Memo1.Clear;
@@ -460,7 +438,7 @@ ini.WriteInteger('Cols','6',serverlist.ColWidths[6]);
 ini.Free;
 ReconnectTimer.Enabled:=false;
 ClearServers();
-if ZLO_ConnectMServer('emu.bf3.zloemu.org') then
+if ZLO_ConnectMServer() then
 begin
 button1.Enabled:=false;
 Memo1.Clear;
@@ -538,7 +516,7 @@ begin
 ReconnectTimer.Enabled:=false;
 memo1.Lines.Add('Reconnecting');
 ClearServers();
-if ZLO_ConnectMServer('emu.bf3.zloemu.org') then
+if ZLO_ConnectMServer() then
 begin
 button1.Enabled:=false;
 Memo1.Lines.Add('Connected to master');

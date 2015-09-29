@@ -8,7 +8,7 @@ uses
   IdBaseComponent, IdComponent, IdTCPConnection, IdTCPClient, IdHTTP, inifiles, System.SyncObjs;
 
 const
-  ZVersion = 6;
+  ZVersion = 7;
 
 type
 tEventListener = procedure(event: integer);cdecl;
@@ -364,6 +364,8 @@ begin
 showmessage('Cant open port for server, its fatal');
 form1.memo1.lines.add('Cant open port for server, its fatal');
 end;
+if FindCmdLineSwitch('connect') then
+form1.ReconnectTimer.Enabled:=true;
 end
 else
 begin
